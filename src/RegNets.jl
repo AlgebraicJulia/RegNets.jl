@@ -16,4 +16,16 @@ end
 
 @acset_type SignedGraph(SchSignedGraph, index=[:src, :tgt]) <: AbstractGraph
 
+@present SchStockFlow(FreeSchema) begin
+  S::Ob
+  F::Ob
+  L::Ob
+  up::Hom(F, S)
+  down::Hom(F, S)
+  src::Hom(L,S)
+  tgt::Hom(L,F)
+end
+
+@acset_type StockFlow(SchStockFlow, index=[:up, :down, :src, :tgt])
+
 end
