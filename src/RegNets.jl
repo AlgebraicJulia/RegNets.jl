@@ -20,12 +20,12 @@ end
   S::Ob
   F::Ob
   L::Ob
-  in::Hom(F, S)
-  out::Hom(F, S)
+  up::Hom(F, S)
+  down::Hom(F, S)
   src::Hom(L,S)
   tgt::Hom(L,F)
 end
 
-@acset_type StockFlow(SchStockFlow, index=[:in, :out, :src, :tgt])
+@acset_type StockFlow(SchStockFlow, index=[:up, :down, :src, :tgt])
 
 end
