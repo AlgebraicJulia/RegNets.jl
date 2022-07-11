@@ -1,11 +1,16 @@
 using Catlab
 using Catlab.CategoricalAlgebra
 using Catlab.Theories
-#using Catlab.CategoricalAlgebra.FinFunctions
+import Catlab.Theories: id, dom, codom, compose
 
+"""    VectorField{F}
+
+A dynamical system over a Euclidean Space on `n` dimensions. 
+Use `VectorField{Function}` to disable specialization on the vector field function.
+"""
 struct VectorField{F}
-    domain::FinSet
-    field::F
+    domain::FinSet # Rⁿ
+    field::F  # maps Rⁿ to Tangents(Rⁿ)
 end
 
 domain(U::VectorField) = U.domain
@@ -26,17 +31,30 @@ The structure for storing a homomorphism between VectorField objects. The key ax
 this means that you can see a version of v inside u by applying the `f_state` map to restrict states of v to a state of u.
 Then apply the vector field for u to get a tangent vector for u. Then you can apply the `f_tangent` map to get a tangent vector for v.
 
-    u::VectorField
     v::VectorField
+    u::VectorField
     f_state:   domain(u) → domain(v)
     f_tangent: tan(v) → tan(u)
 
 """
-struct VectorFieldHom
+struct VectorFieldHom{F,G}
     v::VectorField
     u::VectorField
-    f_state::Function
-    f_tangent::Function
+    f::FinFunction
+    f_state::F
+    f_tangent::G
+end
+
+dom(ϕ::VectorFieldHom) = ϕ.v
+codom(ϕ::VectorFieldHom) = ϕ.u
+
+id(V::VectorField) = VectorFieldHom(V, id(domain(V)))
+compose(ϕ::VectorFieldHom, γ::VectorFieldHom) = begin
+    VectorFieldHom(dom(ϕ),
+                codom(γ),
+                ϕ.f ⋅ γ.f,
+                ϕ.f_state∘γ.f_state,     #restrict right to left
+                γ.f_tangent∘ϕ.f_tangent) # pushforward left to right 
 end
 
 pullback(f::FinFunction) = u -> u[collect(f)]
@@ -51,46 +69,63 @@ struct Pullback{F}
     f::F
 end
 
-(fꜛ::Pullback{F})(u) where F <: FinFunction = u[collect(f)]
+(fꜛ::Pullback{F})(u) where F <: FinFunction = u[collect(fꜛ.f)]
 
-""" PushForward{F} wraps F in a struct to make a callable for the action of pushing a function forward along `f::F`. 
+""" Pushforward{F} wraps F in a struct to make a callable for the action of pushing a function forward along `f::F`. 
 For `F <: FinFunction`, f: N → M sends Xᴺ to Xᴹ by adding over preimages. 
 Requires that X be a commutative additive monoid. The method `zero∘eltype(u::Xᴹ)` should return the unit and sum, should use the addition operator. 
 """
-struct PushForward{F}
+struct Pushforward{F}
     f::F
 end
 
-(fꜜ::PushForward{F})(u̇) where F <: FinFunction = map(codom(f)) do i
-    sum(u̇[j] for j in preimage(f, i);init=zero(eltype(u̇)))
+(fꜜ::Pushforward{F})(u̇) where F <: FinFunction = map(codom(fꜜ.f)) do i
+    sum(u̇[j] for j in preimage(fꜜ.f, i);init=zero(eltype(u̇)))
 end
 
-VectorFieldHom(U, V, f::FinFunction) = begin
-    domain(U) == codom(f) || error("FinFunctions induce VectorFieldHoms contravariantly")
-    domain(V) == dom(f)    || error("FinFunctions induce VectorFieldHoms contravariantly")
-    f_state = pullback(f)
-    f_tangent = pushforward(f)
-    return VectorFieldHom(U,V,f_state, f_tangent)
+VectorFieldHom(V, U, f::FinFunction) = begin
+    domain(V) == dom(f) || error("FinFunctions induce VectorFieldHoms covariantly")
+    domain(U) == codom(f)    || error("FinFunctions induce VectorFieldHoms covariantly")
+    f_state = Pullback(f)
+    f_tangent = Pushforward(f)
+    return VectorFieldHom(V,U, f, f_state, f_tangent)
 end
 
-VectorFieldHom(U, f::Function) = begin
-    V = VectorField(codom(f), PushForward(f)∘field(U)∘Pullback(f))
-    VectorFieldHom(U, V, f)
+VectorFieldHom(V, f::FinFunction) = begin
+    U = VectorField(codom(f), Pushforward(f)∘vfield(V)∘Pullback(f))
+    VectorFieldHom(V, U, f)
 end
+
+"""    Dynam
+
+The dynamical systems functor D: FinSet → Set that sends finsets `n` to VectorFields on `n` dimensions and
+sends finfunctions `f: n → m` to the function that sends VectorFields to VectorFields by defining the morphism defined in `simulate`.
+VectorFieldHoms are the morphisms in the category of elements of this functor.
+"""
+Dynam(X::FinSet) = VectorField # would like dependent type to depend on Int here.
+
+Dynam(f::FinFunction) = (V::VectorField) -> begin
+    domain(V) == dom(f) || error("V is not in domain of Dynam(f)")
+    codom(VectorFieldHom(dom(f), f))
+end
+
+proj(V::VectorField) = domain(V)
+proj(f::VectorFieldHom) = f.f
+
 
 """    restrict(f::VectorFieldHom, v::AbstractVector)
 
-Apply f.f_state to send states/tangents in `domain(f.v)` to states/tangents in `domain(f.u)`.
+Apply f.f_state to send states/tangents in `domain(codom(f))` to states/tangents in `domain(dom(f))`.
 Uses the fact that the state space of a VectorField is a Euclidean Space to treat states and tangents as vectors. 
 """
 restrict(f::VectorFieldHom, u::AbstractVector) = f.f_state(u)
 
 
-"""    pushforward(f::VectorFieldHom, u::AbstractVector)
+"""    pushforward(f::VectorFieldHom, v::AbstractVector)
 
-Apply f.f_tangent to send tangent vectors over `domain(f.u)` to tangent vectors over `domain(f.v)`.
+Apply f.f_tangent to send tangent vectors over `domain(dom(f))` to tangent vectors over `domain(codom(f))`.
 """
-pushforward(f::VectorFieldHom, u::AbstractVector) = f.f_tangent(u)
+pushforward(f::VectorFieldHom, v::AbstractVector) = f.f_tangent(v)
 
 """    simulate(f::VectorFieldHom, v::AbstractVector)
 
@@ -98,9 +133,9 @@ Uses f.u to simulate f.v by pulling back the state and pushing forward the tange
 
 This name is confusing in the context of numerical simulation.
 
-axiom: restrict(f, simulate(f, v) - f.v(v)) == 0:domain(f.u)
+axiom: simulate(f, v) == f.v(v) 
 """
-simulate(f::VectorFieldHom, v::AbstractVector) = pushforward(f, f.u(restrict(f, v)))
+simulate(f::VectorFieldHom, u::AbstractVector) = pushforward(f, f.v(restrict(f, u)))
 
 
 
@@ -110,43 +145,67 @@ Y = FinSet(2)
 f = FinFunction([1,2,2], X, Y)
 
 v = VectorField(X, x->[x[1] - x[2], x[2]])
-
 u = VectorField(Y, y -> [y[1], -y[2]])
 
-ϕ = VectorFieldHom(u, v, y->y[[1,2,2]], ẋ->[ẋ[1], ẋ[2]+ẋ[3]])
+@test proj(v) == X
+@test proj(u) == Y
+
+# ϕ = VectorFieldHom(u, v, y->y[[1,2,2]], ẋ->[ẋ[1], ẋ[2]+ẋ[3]])
 
 
 LV(α,β,γ,δ) = VectorField(FinSet(2),
     u -> [α*u[1] - β*u[1]*u[2],
           γ*u[1]*u[2] + δ*u[2]])
 
-LV₃(α,β,γ,δ,η) = VectorField(FinSet(3),
-u -> [α*u[1] - β*u[1]*u[2],
-      γ*u[1]*u[2] + δ*u[2],
-      η*u[3]])
-ϕₗᵥ(α,β,γ,δ,η) = VectorFieldHom(LV₃(α,β,γ,δ,η),
-                 LV(α,β,γ,δ),
-                 FinFunction([1,2],FinSet(3)))
+lvact(α,β,γ,δ, f) = VectorFieldHom(LV(α, β, γ, δ), f)
 
-f = ϕₗᵥ(1,0.5,0.3,-0.2,0.01)
-
-v₀ = [10.,2,1]
-f.f_tangent(f.u(f.f_state(v₀)))
-
-@test f.f_state(v₀) == v₀[[1,2]]
-f.u(f.f_state(v₀)) == [0, 5.6]
-f.f_tangent(f.u(f.f_state(v₀)))
-
-v₀ = [10.,2.1,1]
-
-@test all(restrict(f, simulate(f, v₀) - f.v(v₀)) .<= 1e-4)
-
-@testset "Inclusion Map" begin
-for i in 1:10
-    r = rand(domain(f.v).n)
-    # @show simulate(f, r)
-    # @show f.v(r)
-    @test all(restrict(f, simulate(f, r) - f.v(r)) .<= 1e-4)
-end
+@testset "Inclusion Map2" begin
+    f = lvact(1,0.5,0.3,-0.2, FinFunction([1,2], 3))
+    for i in 1:10
+        r = rand(domain(codom(f)).n)
+        # @show simulate(f, r)
+        # @show domain(f.v)
+        # @show domain(f.u)
+        # @show f.u(r)
+        # @show f.v(restrict(f, r))
+        # @show typeof(restrict(f, r))
+        # @show pushforward(f, f.v(restrict(f, r))) - f.u(r)
+        # @show simulate(f, r)
+        @test proj(f) == FinFunction([1,2], 3)
+        @test all(simulate(f, r) - codom(f)(r) .<= 1e-4)
+    end
 end
 
+@testset "Surj Map2" begin
+    f = lvact(1,0.5,0.3,-0.2, FinFunction([1,1], 1))
+    for i in 1:10
+        r = rand(domain(codom(f)).n)
+        @test proj(f) == FinFunction([1,1], 1)
+        @test all(simulate(f, r) - codom(f)(r) .<= 1e-4)
+    end
+end
+
+@testset "Compose" begin
+    V = LV(1, 0.5, 0.3, -0.2)
+
+    f = FinFunction([1,1], 3)
+    g = FinFunction([1,2,1], 2)
+    h = compose(f,g)
+
+    ϕ = VectorFieldHom(V, f)
+    U = codom(ϕ)
+    
+    γ = VectorFieldHom(U, g)
+    W = codom(γ)
+    η = compose(ϕ,γ)
+
+    @test dom(η) == dom(ϕ)
+    @test codom(η) == codom(γ)
+    @test collect(η.f) == collect(h)
+
+    for i in 1:10
+        r = rand(domain(codom(η)).n)
+        @test collect(proj(η)) == collect(h)
+        @test all(simulate(η, r) - codom(η)(r) .<= 1e-4)
+    end
+end
