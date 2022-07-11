@@ -26,23 +26,23 @@ end
 
 The structure for storing a homomorphism between VectorField objects. The key axiom is that
 
-    restrict(f, simulate(f, v) - f.v(v)) == 0:domain(f.u)
+    restrict(f, simulate(f, u) - f.u(u)) == 0:domain(f.v)
 
-this means that you can see a version of v inside u by applying the `f_state` map to restrict states of v to a state of u.
-Then apply the vector field for u to get a tangent vector for u. Then you can apply the `f_tangent` map to get a tangent vector for v.
+this means that you can see a version of v inside u by applying the `Pullback(f)` map to restrict states of u to a state of v.
+Then apply the vector field for v to get a tangent vector for v. Then you can apply the `Pushforward(f)` map to get a tangent vector for u.
 
-    v::VectorField
-    u::VectorField
-    f_state:   domain(u) → domain(v)
-    f_tangent: tan(v) → tan(u)
-
-"""
-struct VectorFieldHom{F,G}
     v::VectorField
     u::VectorField
     f::FinFunction
-    f_state::F
-    f_tangent::G
+   
+    Pullback(f):    domain(u) → domain(v)
+    Pushforward(f): tan(v) → tan(u)
+
+"""
+struct VectorFieldHom
+    v::VectorField
+    u::VectorField
+    f::FinFunction
 end
 
 dom(ϕ::VectorFieldHom) = ϕ.v
@@ -52,9 +52,7 @@ id(V::VectorField) = VectorFieldHom(V, id(domain(V)))
 compose(ϕ::VectorFieldHom, γ::VectorFieldHom) = begin
     VectorFieldHom(dom(ϕ),
                 codom(γ),
-                ϕ.f ⋅ γ.f,
-                ϕ.f_state∘γ.f_state,     #restrict right to left
-                γ.f_tangent∘ϕ.f_tangent) # pushforward left to right 
+                ϕ.f ⋅ γ.f)
 end
 
 pullback(f::FinFunction) = u -> u[collect(f)]
@@ -86,9 +84,7 @@ end
 VectorFieldHom(V, U, f::FinFunction) = begin
     domain(V) == dom(f) || error("FinFunctions induce VectorFieldHoms covariantly")
     domain(U) == codom(f)    || error("FinFunctions induce VectorFieldHoms covariantly")
-    f_state = Pullback(f)
-    f_tangent = Pushforward(f)
-    return VectorFieldHom(V,U, f, f_state, f_tangent)
+    return VectorFieldHom(V,U, f)
 end
 
 VectorFieldHom(V, f::FinFunction) = begin
@@ -118,14 +114,14 @@ proj(f::VectorFieldHom) = f.f
 Apply f.f_state to send states/tangents in `domain(codom(f))` to states/tangents in `domain(dom(f))`.
 Uses the fact that the state space of a VectorField is a Euclidean Space to treat states and tangents as vectors. 
 """
-restrict(f::VectorFieldHom, u::AbstractVector) = f.f_state(u)
+restrict(f::VectorFieldHom, u::AbstractVector) = Pullback(proj(f))(u)
 
 
 """    pushforward(f::VectorFieldHom, v::AbstractVector)
 
 Apply f.f_tangent to send tangent vectors over `domain(dom(f))` to tangent vectors over `domain(codom(f))`.
 """
-pushforward(f::VectorFieldHom, v::AbstractVector) = f.f_tangent(v)
+pushforward(f::VectorFieldHom, v::AbstractVector) = Pushforward(proj(f))(v)
 
 """    simulate(f::VectorFieldHom, v::AbstractVector)
 
