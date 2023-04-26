@@ -4,12 +4,7 @@ export SignedGraph
 using Catlab, Catlab.CategoricalAlgebra
 using Catlab.Graphs
 
-@present SchSignedGraph(FreeSchema) begin
-  V::Ob
-  E::Ob
-  src::Hom(E, V)
-  tgt::Hom(E, V)
-
+@present SchSignedGraph <: SchGraph begin
   Sign::AttrType
   sgn::Attr(E, Sign)
 end
