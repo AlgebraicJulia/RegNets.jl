@@ -11,5 +11,6 @@ end
 
 @acset_type SignedGraph(SchSignedGraph, index=[:src, :tgt]) <: AbstractGraph
 
+include("SignedPetriNets.jl")
 
 end
