@@ -9,7 +9,7 @@ using Catlab.Graphs
 
 @test SignedGraph <: AbstractGraph
 
-sg = @acset SignedGraph{Bool} begin
+sg = @acset SignedGraph begin
   V=3
   E=3
 

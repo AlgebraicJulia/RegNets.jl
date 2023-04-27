@@ -1,6 +1,9 @@
 module SignedPetriNets
-export AbstractSignedPetriNet, SignedPetriNet, OpenSignedPetriNet, OpenSignedPetriNetOb,
-  AbstractLabelledSignedPetriNet, LabelledSignedPetriNet, OpenLabelledSignedPetriNet, OpenLabelledSignedPetriNetOb
+export AbstractSignedPetriNet, SignedPetriNetUntyped, SignedPetriNet,
+  OpenSignedPetriNetUntyped, OpenSignedPetriNetObUntyped, OpenSignedPetriNet, OpenSignedPetriNetOb,
+  AbstractLabelledSignedPetriNet, LabelledSignedPetriNet, LabelledSignedPetriNetUntyped,
+  OpenLabelledSignedPetriNetUntyped, OpenLabelledSignedPetriNetObUntyped,
+  OpenLabelledSignedPetriNet, OpenLabelledSignedPetriNetOb
 
 using AlgebraicPetri
 using Catlab, Catlab.CategoricalAlgebra
@@ -27,15 +30,28 @@ Open(p::AbstractSignedPetriNet) = OpenSignedPetriNet(p, map(x -> FinFunction([x]
 Open(p::AbstractSignedPetriNet, legs...) = OpenSignedPetriNet(p, map(l -> FinFunction(l, ns(p)), legs)...)
 Open(n, p::AbstractSignedPetriNet, m) = Open(p, n, m)
 
-function (::Type{T})(pn::AbstractPetriNet, signs::Vararg{Union{Pair,Tuple}}) where T <: AbstractSignedPetriNet
+const sign_lookup = Dict(
+  true => true,
+  1 => true,
+  :+ => true,
+  false => false,
+  -1 => false,
+  :- => false
+)
+
+function (::Type{T})(pn::AbstractPetriNet, signs::AbstractVector) where T <: AbstractSignedPetriNet
   pn′ = T()
   copy_parts!(pn′, pn)
   snames = Dict(sname(pn′, s) => s for s in 1:ns(pn′))
   tnames = Dict(tname(pn′, t) => t for t in 1:nt(pn′))
   for (ls, (lt, sign)) in signs
-    add_part!(pn′, :L; ls=snames[ls], lt=tnames[lt], sign=sign)
+    add_part!(pn′, :L; ls=snames[ls], lt=tnames[lt], sgn=sign_lookup[sign])
   end
   pn′
+end
+
+function (::Type{T})(pn::AbstractPetriNet, signs::Vararg) where T <: AbstractSignedPetriNet
+  T(pn, collect(signs))
 end
 
 @present SchLabelledSignedPetriNet <: SchSignedPetriNet begin

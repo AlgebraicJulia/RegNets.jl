@@ -6,10 +6,11 @@ using Catlab.Graphs
 
 @present SchSignedGraph <: SchGraph begin
   Sign::AttrType
-  sgn::Attr(E, Sign)
+  sign::Attr(E,Sign)
 end
 
-@acset_type SignedGraph(SchSignedGraph, index=[:src, :tgt]) <: AbstractGraph
+@acset_type SignedGraphUntyped(SchSignedGraph, index=[:src, :tgt]) <: AbstractGraph
+const SignedGraph = SignedGraphUntyped{Bool}
 
 include("SignedPetriNets.jl")
 
