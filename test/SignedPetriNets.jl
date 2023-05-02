@@ -10,7 +10,7 @@ using AlgebraicPetri
 
 lsir = LabelledPetriNet([:S, :I, :R], (:inf, (:S,:I)=>(:I,:I)), (:rec, :I=>:R))
 
-@test LabelledSignedPetriNet(lsir) |> LabelledPetriNet == lsir
+@test SignedLabelledPetriNet(lsir) |> LabelledPetriNet == lsir
 @test SignedPetriNet(lsir) |> PetriNet == PetriNet(lsir)
 
 end

@@ -1,9 +1,12 @@
 module SignedPetriNets
 export AbstractSignedPetriNet, SignedPetriNetUntyped, SignedPetriNet,
   OpenSignedPetriNetUntyped, OpenSignedPetriNetObUntyped, OpenSignedPetriNet, OpenSignedPetriNetOb,
-  AbstractLabelledSignedPetriNet, LabelledSignedPetriNet, LabelledSignedPetriNetUntyped,
-  OpenLabelledSignedPetriNetUntyped, OpenLabelledSignedPetriNetObUntyped,
-  OpenLabelledSignedPetriNet, OpenLabelledSignedPetriNetOb
+  AbstractSignedLabelledPetriNet, SignedLabelledPetriNet, SignedLabelledPetriNetUntyped,
+  OpenSignedLabelledPetriNetUntyped, OpenSignedLabelledPetriNetObUntyped, OpenSignedLabelledPetriNet, OpenSignedLabelledPetriNetOb,
+  AbstractSignedReactionNet, SignedReactionNet, SignedReactionNetUntyped,
+  OpenSignedReactionNetUntyped, OpenSignedReactionNetObUntyped, OpenSignedReactionNet, OpenSignedReactionNetOb,
+  AbstractSignedLabelledReactionNet, SignedLabelledReactionNet, SignedLabelledReactionNetUntyped,
+  OpenSignedLabelledReactionNetUntyped, OpenSignedLabelledReactionNetObUntyped, OpenSignedLabelledReactionNet, OpenSignedLabelledReactionNetOb
 
 using AlgebraicPetri
 using Catlab, Catlab.CategoricalAlgebra
@@ -45,7 +48,7 @@ function (::Type{T})(pn::AbstractPetriNet, signs::AbstractVector) where T <: Abs
   snames = Dict(sname(pn′, s) => s for s in 1:ns(pn′))
   tnames = Dict(tname(pn′, t) => t for t in 1:nt(pn′))
   for (ls, (lt, sign)) in signs
-    add_part!(pn′, :L; ls=snames[ls], lt=tnames[lt], sgn=sign_lookup[sign])
+    add_part!(pn′, :L; ls=snames[ls], lt=tnames[lt], sign=sign_lookup[sign])
   end
   pn′
 end
@@ -54,23 +57,73 @@ function (::Type{T})(pn::AbstractPetriNet, signs::Vararg) where T <: AbstractSig
   T(pn, collect(signs))
 end
 
-@present SchLabelledSignedPetriNet <: SchSignedPetriNet begin
-  Name::AttrType
+@present SchSignedLabelledPetriNet <: SchLabelledPetriNet begin
+  L::Ob
+  Z2::AttrType
 
-  tname::Attr(T, Name)
-  sname::Attr(S, Name)
+  ls::Hom(L, S)
+  lt::Hom(L, T)
+
+  sign::Attr(L, Z2)
 end
 
-@abstract_acset_type AbstractLabelledSignedPetriNet <: AbstractSignedPetriNet
-@acset_type LabelledSignedPetriNetUntyped(SchLabelledSignedPetriNet, index=[:it, :is, :ot, :os]) <: AbstractLabelledSignedPetriNet
-const LabelledSignedPetriNet = LabelledSignedPetriNetUntyped{Bool, Symbol}
-const OpenLabelledSignedPetriNetObUntyped, OpenLabelledSignedPetriNetUntyped = OpenACSetTypes(LabelledSignedPetriNetUntyped, :S)
-const OpenLabelledSignedPetriNetOb, OpenLabelledSignedPetriNet = OpenLabelledSignedPetriNetObUntyped{Bool, Symbol}, OpenLabelledSignedPetriNetUntyped{Bool, Symbol}
+@abstract_acset_type AbstractSignedLabelledPetriNet <: AbstractSignedPetriNet
+@acset_type SignedLabelledPetriNetUntyped(SchSignedLabelledPetriNet, index=[:it, :is, :ot, :os]) <: AbstractSignedLabelledPetriNet
+const SignedLabelledPetriNet = SignedLabelledPetriNetUntyped{Symbol, Bool}
+const OpenSignedLabelledPetriNetObUntyped, OpenSignedLabelledPetriNetUntyped = OpenACSetTypes(SignedLabelledPetriNetUntyped, :S)
+const OpenSignedLabelledPetriNetOb, OpenSignedLabelledPetriNet = OpenSignedLabelledPetriNetObUntyped{Symbol, Bool}, OpenSignedLabelledPetriNetUntyped{Symbol, Bool}
 
-Open(p::LabelledSignedPetriNet) = OpenLabelledSignedPetriNet(p, map(x -> FinFunction([x], ns(p)), 1:ns(p))...)
-Open(p::LabelledSignedPetriNet, legs...) = begin
+Open(p::SignedLabelledPetriNet) = OpenSignedLabelledPetriNet(p, map(x -> FinFunction([x], ns(p)), 1:ns(p))...)
+Open(p::SignedLabelledPetriNet, legs...) = begin
   s_idx = Dict(sname(p, s) => s for s in 1:ns(p))
-  OpenLabelledSignedPetriNet(p, map(l -> FinFunction(map(i -> s_idx[i], l), ns(p)), legs)...)
+  OpenSignedLabelledPetriNet(p, map(l -> FinFunction(map(i -> s_idx[i], l), ns(p)), legs)...)
+end
+
+@present SchSignedReactionNet <: SchReactionNet begin
+  L::Ob
+  Z2::AttrType
+
+  ls::Hom(L, S)
+  lt::Hom(L, T)
+
+  sign::Attr(L, Z2)
+
+  srate::Attr(S, Rate)
+end
+
+@abstract_acset_type AbstractSignedReactionNet <: AbstractSignedPetriNet
+@acset_type SignedReactionNetUntyped(SchSignedReactionNet, index=[:it, :is, :ot, :os]) <: AbstractSignedReactionNet
+const SignedReactionNet{R,C} = SignedReactionNetUntyped{R,C,Bool}
+const OpenSignedReactionNetObUntyped, OpenSignedReactionNetUntyped = OpenACSetTypes(SignedReactionNetUntyped, :S)
+const OpenSignedReactionNetOb{R,C} = OpenSignedReactionNetObUntyped{R,C,Bool}
+const OpenSignedReactionNet{R,C} = OpenSignedReactionNetUntyped{R,C,Bool}
+
+Open(p::SignedReactionNet{R,C}, legs...) where {R,C} = OpenSignedReactionNet{R,C}(p, map(l -> FinFunction(l, ns(p)), legs)...)
+Open(p::SignedReactionNet{R,C}) where {R,C} = OpenSignedReactionNet{R,C}(p, map(x -> FinFunction([x], ns(p)), 1:ns(p))...)
+
+@present SchSignedLabelledReactionNet <: SchLabelledReactionNet begin
+  L::Ob
+  Z2::AttrType
+
+  ls::Hom(L, S)
+  lt::Hom(L, T)
+
+  sign::Attr(L, Z2)
+
+  srate::Attr(S, Rate)
+end
+
+@abstract_acset_type AbstractSignedLabelledReactionNet <: AbstractSignedReactionNet
+@acset_type SignedLabelledReactionNetUntyped(SchSignedLabelledReactionNet, index=[:it, :is, :ot, :os]) <: AbstractSignedLabelledReactionNet
+const SignedLabelledReactionNet{R,C} = SignedLabelledReactionNetUntyped{R,C,Symbol,Bool}
+const OpenSignedLabelledReactionNetObUntyped, OpenSignedLabelledReactionNetUntyped = OpenACSetTypes(SignedLabelledReactionNetUntyped, :S)
+const OpenSignedLabelledReactionNetOb{R,C} = OpenSignedLabelledReactionNetObUntyped{R,C,Symbol,Bool}
+const OpenSignedLabelledReactionNet{R,C} = OpenSignedLabelledReactionNetUntyped{R,C,Symbol,Bool}
+
+Open(p::SignedLabelledReactionNet{R,C}) where {R,C} = OpenSignedLabelledReactionNet{R,C}(p, map(x -> FinFunction([x], ns(p)), 1:ns(p))...)
+Open(p::SignedLabelledReactionNet{R,C}, legs...) where {R,C} = begin
+  s_idx = Dict(sname(p, s) => s for s in 1:ns(p))
+  OpenLabelledSignedPetriNet{R,C}(p, map(l -> FinFunction(map(i -> s_idx[i], l), ns(p)), legs)...)
 end
 
 end
