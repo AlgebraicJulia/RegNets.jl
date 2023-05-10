@@ -2,7 +2,7 @@ using Documenter
 using Literate
 
 const literate_dir = joinpath(@__DIR__, "literate")
-const generated_dir = joinpath(@__DIR__, "src", "examples")
+const generated_dir = joinpath(@__DIR__, "src", "generated")
 
 @info "Loading RegNets"
 using RegNets, RegNets.ASKEMRegNets, RegNets.SignedPetriNets
@@ -44,7 +44,7 @@ makedocs(
   pages     = Any[
     "RegNets.jl" => "index.md",
     "Examples" => Any[
-      "generated/SignedGraphs.md",
+      "generated/ASKEMRegNets.md",
     ],
     "Library Reference" => "api.md",
   ]
