@@ -25,6 +25,10 @@ lotka_volterra = HTTP.get(
   "https://raw.githubusercontent.com/DARPA-ASKEM/Model-Representations/main/regnet/examples/lotka_volterra.json"
 ).body |> String |> parse_askem_model
 
+# ### Visualize the model
+
+to_graphviz(lotka_volterra)
+
 # ## Simulate the model
 
 ODEProblem(

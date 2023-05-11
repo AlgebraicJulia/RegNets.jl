@@ -5,6 +5,7 @@ export AbstractSignedGraph, SchSignedGraph, SignedGraphUntyped, SignedGraph,
 
 using Catlab, Catlab.CategoricalAlgebra
 using Catlab.Graphs
+import Catlab.Graphics.Graphviz
 
 @present SchSignedGraph <: SchGraph begin
   Sign::AttrType
@@ -37,6 +38,18 @@ function vectorfield(sg::AbstractSignedGraph)
       for e in incident(sg, i, :tgt); init=0.0)
     for i in 1:nv(sg)
   ]
+end
+
+function Catlab.Graphics.to_graphviz_property_graph(sg::AbstractSignedGraph; kw...)
+  get_attr_str(attr, i) = String(has_subpart(sg, attr) ? subpart(sg, i, attr) : Symbol(i))
+  pg = PropertyGraph{Any}(;kw...)
+  map(parts(sg, :V)) do v
+    add_vertex!(pg, label=get_attr_str(:vname, v))
+  end
+  map(parts(sg, :E)) do e
+    add_edge!(pg, sg[e, :src], sg[e, :tgt], label=get_attr_str(:ename, e), arrowhead=(sg[e,:sign] ? "normal" : "tee"))
+  end
+  pg
 end
 
 include("SignedPetriNets.jl")
