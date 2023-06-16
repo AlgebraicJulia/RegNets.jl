@@ -9,7 +9,7 @@ export AbstractSignedPetriNet, SignedPetriNetUntyped, SignedPetriNet,
   OpenSignedLabelledReactionNetUntyped, OpenSignedLabelledReactionNetObUntyped, OpenSignedLabelledReactionNet, OpenSignedLabelledReactionNetOb
 
 using AlgebraicPetri
-using Catlab, Catlab.CategoricalAlgebra
+using Catlab
 
 import AlgebraicPetri: Open
 
