@@ -3,8 +3,7 @@ module TestCore
 using Test
 
 using RegNets
-using Catlab, Catlab.CategoricalAlgebra
-using Catlab.Graphs
+using Catlab
 
 
 @test SignedGraph <: AbstractGraph

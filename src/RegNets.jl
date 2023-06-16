@@ -3,8 +3,7 @@ export AbstractSignedGraph, SchSignedGraph, SignedGraphUntyped, SignedGraph,
   SchRateSignedGraph, RateSignedGraphUntyped, RateSignedGraph,
   vectorfield
 
-using Catlab, Catlab.CategoricalAlgebra
-using Catlab.Graphs
+using Catlab
 import Catlab.Graphics.Graphviz
 
 @present SchSignedGraph <: SchGraph begin

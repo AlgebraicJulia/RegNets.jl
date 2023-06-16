@@ -3,7 +3,7 @@ export parse_askem_model, read_askem_model,
   SchASKEMRegNet, ASKEMRegNetUntyped, ASKEMRegNet
 
 using RegNets
-using Catlab.CategoricalAlgebra
+using Catlab
 using JSON
 
 @present SchASKEMRegNet <: SchRateSignedGraph begin

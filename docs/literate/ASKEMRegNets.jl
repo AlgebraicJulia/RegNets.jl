@@ -3,7 +3,7 @@
 # Here we will build a modeling framework for regulatory networks with Lotka-Volterra semantics using Catlab.jl
 
 using RegNets, RegNets.ASKEMRegNets
-using Catlab.Graphs, Catlab.CategoricalAlgebra, Catlab.Graphics
+using Catlab
 using JSON, HTTP, OrdinaryDiffEq, Plots
 
 # ## Define the schema
