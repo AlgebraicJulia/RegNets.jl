@@ -157,10 +157,10 @@ to_graphviz(lotka_volterra)
 # And we can use that to pass into an `ODEProblem` using DifferentialEquations.jl
 
 ODEProblem(
-  vectorfield(lotka_volterra), # generate the vectorfield
-  lotka_volterra[:initial],    # get the initial concentrations
-  (0.0, 100.0),                # set the time period
-  lotka_volterra,              # pass in model which contains the rate parameters
+  vectorfield(lotka_volterra),         # generate the vectorfield
+  Float64.(lotka_volterra[:initial]),  # get the initial concentrations
+  (0.0, 100.0),                        # set the time period
+  lotka_volterra,                      # pass in model which contains the rate parameters
   alg=Tsit5()
 ) |> solve |> plot
 
