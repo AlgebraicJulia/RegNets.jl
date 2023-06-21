@@ -14,7 +14,7 @@ sg = @acset SignedGraph begin
 
   src = [1,    2,    3]
   tgt = [2,    3,    1]
-  sgn = [true, true, false]
+  sign = [true, true, false]
 end
 
 @test nv(sg) == 3
@@ -30,7 +30,7 @@ fsg = @acset RateSignedGraph{Number} begin
 
   src =  [1,    2,    3]
   tgt =  [2,    3,    1]
-  sgn =  [true, true, false]
+  sign =  [true, true, false]
   erate = [.1, .1, 1]
 end
 
